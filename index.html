@@ -1,0 +1,464 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101018">
+<title>BeatFlow Music</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #101018;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 25px;
+  font-weight: bold;
+  color: #a78bfa;
+}
+
+main {
+  padding: 15px;
+  padding-bottom: 150px;
+  max-width: 750px;
+  margin: auto;
+}
+
+h2 {
+  margin-top: 25px;
+}
+
+.search {
+  display: flex;
+  gap: 8px;
+}
+
+input {
+  min-width: 0;
+  flex: 1;
+  padding: 14px;
+  border: 1px solid #383849;
+  border-radius: 12px;
+  background: #20202c;
+  color: white;
+  font-size: 15px;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: #8b5cf6;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:active {
+  opacity: .7;
+}
+
+.banner {
+  margin-top: 25px;
+  padding: 25px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #6429b5, #202050);
+}
+
+.banner h2 {
+  margin-top: 0;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin: 10px 0;
+  background: #20202c;
+  border-radius: 13px;
+}
+
+.cover {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.track-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.track-info strong,
+.track-info small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track-info small {
+  color: #aaa;
+  margin-top: 5px;
+}
+
+.track button {
+  padding: 10px;
+}
+
+.player {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #20202c;
+  border-top: 1px solid #383849;
+  padding: 14px;
+  text-align: center;
+}
+
+#nowPlaying {
+  color: #ddd;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+
+.controls button {
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 18px;
+}
+
+.progress {
+  width: 100%;
+  margin: 12px 0;
+  accent-color: #a78bfa;
+}
+
+.status {
+  color: #aaa;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.secondary {
+  background: #343445;
+}
+
+footer {
+  color: #888;
+  text-align: center;
+  font-size: 12px;
+  margin-top: 35px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">🎵 BeatFlow</div>
+  <span>Music for everyone</span>
+</header>
+
+<main>
+
+  <section class="banner">
+    <h2>Your music. Your world.</h2>
+    <p>Discover music and enjoy your favourite sounds.</p>
+    <button onclick="document.getElementById('musicSearch').focus()">
+      Explore Music
+    </button>
+  </section>
+
+  <h2>🔎 Discover music</h2>
+
+  <div class="search">
+    <input id="musicSearch"
+      placeholder="Search open-licensed music...">
+    <button onclick="searchMusic()">Search</button>
+  </div>
+
+  <p class="status" id="status">
+    Search the Internet Archive for music with Creative Commons
+    or public-domain licensing.
+  </p>
+
+  <section>
+    <h2>🎧 Music Library</h2>
+    <div id="musicList">
+      <p class="status">Your music will appear here.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>📱 Play music from your phone</h2>
+    <input type="file" id="localFiles"
+      accept="audio/*" multiple>
+    <p class="status">
+      Select audio files stored on your device.
+    </p>
+  </section>
+
+  <footer>
+    BeatFlow • A beginner music player project
+  </footer>
+
+</main>
+
+<div class="player">
+  <div id="nowPlaying">Choose a song to start listening</div>
+
+  <input type="range" class="progress"
+    id="progress" min="0" max="100" value="0">
+
+  <div class="controls">
+    <button class="secondary" onclick="previousSong()">⏮</button>
+    <button onclick="togglePlay()" id="playButton">▶</button>
+    <button class="secondary" onclick="nextSong()">⏭</button>
+  </div>
+</div>
+
+<audio id="audio"></audio>
+
+<script>
+const audio = document.getElementById("audio");
+const musicList = document.getElementById("musicList");
+const statusText = document.getElementById("status");
+const nowPlaying = document.getElementById("nowPlaying");
+const playButton = document.getElementById("playButton");
+const progress = document.getElementById("progress");
+
+let songs = [];
+let currentIndex = -1;
+
+function renderSongs() {
+  musicList.innerHTML = "";
+
+  if (!songs.length) {
+    musicList.innerHTML =
+      '<p class="status">No songs found yet.</p>';
+    return;
+  }
+
+  songs.forEach((song, index) => {
+    const item = document.createElement("div");
+    item.className = "track";
+
+    const cover = document.createElement("div");
+    cover.className = "cover";
+    cover.textContent = "🎵";
+
+    const info = document.createElement("div");
+    info.className = "track-info";
+
+    const title = document.createElement("strong");
+    title.textContent = song.title;
+
+    const artist = document.createElement("small");
+    artist.textContent = song.artist;
+
+    const button = document.createElement("button");
+    button.textContent = "▶";
+    button.onclick = () => playSong(index);
+
+    info.append(title, artist);
+    item.append(cover, info, button);
+    musicList.appendChild(item);
+  });
+}
+
+async function searchMusic() {
+  const query = document.getElementById("musicSearch")
+    .value.trim();
+
+  if (!query) {
+    statusText.textContent = "Please enter a search term.";
+    return;
+  }
+
+  statusText.textContent = "Searching for music...";
+
+  try {
+    const searchURL =
+      "https://archive.org/advancedsearch.php?q=" +
+      encodeURIComponent("mediatype:audio AND " + query) +
+      "&fl[]=identifier,title,creator&rows=25&output=json";
+
+    const response = await fetch(searchURL);
+    if (!response.ok) throw new Error("Search unavailable");
+
+    const data = await response.json();
+    const results = data.response.docs;
+
+    const checkedSongs = await Promise.all(
+      results.map(async (item) => {
+        try {
+          const result = await fetch(
+            "https://archive.org/metadata/" +
+            encodeURIComponent(item.identifier)
+          );
+
+          if (!result.ok) return null;
+
+          const metadata = await result.json();
+          const license = (
+            metadata.metadata?.licenseurl || ""
+          ).toLowerCase();
+
+          const allowed =
+            license.includes("creativecommons.org") ||
+            license.includes("publicdomain");
+
+          if (!allowed) return null;
+
+          const files = metadata.files || [];
+          const file = files.find(f =>
+            /\.(mp3|ogg)$/i.test(f.name || "") &&
+            !f.name.includes("__ia_thumb")
+          );
+
+          if (!file) return null;
+
+          return {
+            title: item.title || "Unknown song",
+            artist: item.creator || "Unknown artist",
+            url:
+              "https://archive.org/download/" +
+              encodeURIComponent(item.identifier) +
+              "/" +
+              file.name.split("/").map(encodeURIComponent).join("/")
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    songs = checkedSongs.filter(Boolean);
+    currentIndex = -1;
+    renderSongs();
+
+    statusText.textContent = songs.length
+      ? songs.length + " licensed audio results found."
+      : "No suitable licensed MP3 or OGG tracks found. Try another search.";
+
+  } catch (error) {
+    statusText.textContent =
+      "Could not search right now. Check your internet connection and try again.";
+  }
+}
+
+function playSong(index) {
+  if (index < 0 || index >= songs.length) return;
+
+  currentIndex = index;
+  audio.src = songs[index].url;
+  nowPlaying.textContent =
+    "🎵 " + songs[index].title + " — " +
+    songs[index].artist;
+
+  audio.play().then(() => {
+    playButton.textContent = "Ⅱ";
+  }).catch(() => {
+    nowPlaying.textContent =
+      "Unable to play this track. Try another song.";
+    playButton.textContent = "▶";
+  });
+}
+
+function togglePlay() {
+  if (!audio.src) {
+    if (songs.length) playSong(0);
+    return;
+  }
+
+  if (audio.paused) {
+    audio.play().then(() => {
+      playButton.textContent = "Ⅱ";
+    }).catch(() => {});
+  } else {
+    audio.pause();
+    playButton.textContent = "▶";
+  }
+}
+
+function nextSong() {
+  if (songs.length) {
+    playSong((currentIndex + 1) % songs.length);
+  }
+}
+
+function previousSong() {
+  if (songs.length) {
+    playSong(
+      (currentIndex - 1 + songs.length) % songs.length
+    );
+  }
+}
+
+audio.addEventListener("ended", nextSong);
+
+audio.addEventListener("timeupdate", () => {
+  if (audio.duration) {
+    progress.value =
+      (audio.currentTime / audio.duration) * 100;
+  }
+});
+
+progress.addEventListener("input", () => {
+  if (audio.duration) {
+    audio.currentTime =
+      (progress.value / 100) * audio.duration;
+  }
+});
+
+document.getElementById("localFiles")
+  .addEventListener("change", event => {
+    const files = Array.from(event.target.files);
+
+    songs = files.map(file => ({
+      title: file.name,
+      artist: "Your phone",
+      url: URL.createObjectURL(file)
+    }));
+
+    currentIndex = -1;
+    renderSongs();
+    statusText.textContent =
+      files.length + " local audio files added.";
+  });
+</script>
+
+</body>
+</html>
